@@ -1,102 +1,39 @@
 package team_randomizer
 
-import (
-	"log"
-	"math/rand"
-	"perso-dos-amigos/bot/pkg/riot_client"
-)
+import "math/rand"
 
-type Side string
-
-const (
-	Red  Side = "RED"
-	Blue      = "BLUE"
-)
-
-type ChampionInfo struct {
-	Photo string `json:"photo"`
-	Name  string `json:"name"`
+type teamRandomizer struct {
 }
 
-var (
-	logger = log.Default()
-)
+func (*teamRandomizer) RandomizeTeams(players []string, teamSize int) ([]string, []string) {
+	alreadySortedPlayers := make(map[int]bool)
 
-type Team struct {
-	Color     Side           `json:"color"`
-	Champions []ChampionInfo `json:"champions"`
-}
+	blueTeam := make([]string, 0, teamSize)
 
-func getKeys[K comparable, V any](m map[K]V) []K {
-	keys := make([]K, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}
+	for len(blueTeam) < teamSize {
+		playerIdx := rand.Intn(len(players))
 
-func getChampionPhotoUrl(championName string) string {
-	return "https://ddragon.leagueoflegends.com/cdn/14.22.1/img/champion/" + championName + ".png"
-}
-
-func GenerateTeams(players int) []Team {
-	champions, err := riot_client.GetChampionData()
-
-	if err != nil {
-		logger.Panic("Failed to get champions")
-	}
-
-	championsQuantity := len(champions)
-	championsNames := getKeys(champions)
-
-	alreadySortedChampions := make(map[int]bool)
-
-	blueTeam := &Team{}
-	blueTeam.Color = Blue
-
-	blueChampions := make([]ChampionInfo, 0, players*2)
-
-	for len(blueChampions) < players*2 {
-		championIdx := rand.Intn(championsQuantity + 1)
-
-		if !alreadySortedChampions[championIdx] {
-			alreadySortedChampions[championIdx] = true
-
-			championName := championsNames[championIdx]
-			blueChampions = append(blueChampions, ChampionInfo{
-				Name:  championName,
-				Photo: getChampionPhotoUrl(championName),
-			})
+		if !alreadySortedPlayers[playerIdx] {
+			alreadySortedPlayers[playerIdx] = true
+			blueTeam = append(blueTeam, players[playerIdx])
 		}
+
 	}
 
-	blueTeam.Champions = blueChampions
+	redTeam := make([]string, 0, teamSize)
+	for len(redTeam) < teamSize {
+		playerIdx := rand.Intn(len(players))
 
-	redTeam := &Team{}
-	redTeam.Color = Red
-
-	redChampions := make([]ChampionInfo, 0, players*2)
-
-	for len(redChampions) < players*2 {
-		championIdx := rand.Intn(championsQuantity + 1)
-
-		if !alreadySortedChampions[championIdx] {
-			alreadySortedChampions[championIdx] = true
-
-			championName := championsNames[championIdx]
-			redChampions = append(redChampions, ChampionInfo{
-				Name:  championName,
-				Photo: getChampionPhotoUrl(championName),
-			})
+		if !alreadySortedPlayers[playerIdx] {
+			alreadySortedPlayers[playerIdx] = true
+			redTeam = append(redTeam, players[playerIdx])
 		}
+
 	}
-	redTeam.Champions = redChampions
 
-	teams := []Team{*redTeam, *blueTeam}
-
-	return teams
+	return blueTeam, redTeam
 }
 
-func init() {
-	logger.SetPrefix("riot_client")
+func New() teamRandomizer {
+	return teamRandomizer{}
 }

@@ -15,6 +15,9 @@ var (
 	logger = log.Default()
 )
 
+type riotClient struct {
+}
+
 func init() {
 	logger.SetPrefix("riot_client")
 }
@@ -59,11 +62,10 @@ func getChampionsFileName(version string) string {
 	return "/tmp/champions_" + version + ".json"
 }
 
-func GetChampionData() (map[string]interface{}, error) {
+func getChampionDataFromFSOrAPI() (map[string]interface{}, error) {
 	lastDatadragonVersion, err := getLastLeagueVersion()
 
 	if err != nil {
-		logger.Printf("Failed to get last league version: %s", err)
 		return nil, err
 	}
 
@@ -88,9 +90,9 @@ func GetChampionData() (map[string]interface{}, error) {
 	}
 
 	resp, err := http.Get(datagragonUrl + "/cdn/" + lastDatadragonVersion + "/data/en_US/champion.json")
+	//logger.Println("Downloaded json file")
 
 	if err != nil {
-		logger.Printf("Failed to get champion data: %s", err)
 		return nil, err
 	}
 
@@ -112,26 +114,32 @@ func GetChampionData() (map[string]interface{}, error) {
 	err = json.Unmarshal(body, &parsedBody)
 
 	if err != nil {
-		logger.Printf("Failed to deserialize champions json: %s", err)
 		return nil, err
 	}
 
 	championsData := parsedBody["data"].(map[string]interface{})
 
 	championsDataEncoded, err := json.Marshal(championsData)
-
-	if err != nil {
-		logger.Printf("Failed to encode champions data: %s", championsDataEncoded)
-		return nil, err
-	}
-
 	err = os.WriteFile(championsDataFileName, championsDataEncoded, 0644)
 
 	if err != nil {
-		logger.Printf("Failed to write file: %s", err)
 		return nil, err
 	}
 
-	//logger.Println("Downloaded json file")
 	return championsData, nil
+}
+
+func (r *riotClient) GetChampionData() (map[string]interface{}, error) {
+	championsData, err := getChampionDataFromFSOrAPI()
+
+	if err != nil {
+		logger.Printf("Failed to get champion data: %s", err)
+		return nil, err
+	}
+
+	return championsData, nil
+}
+
+func New() *riotClient {
+	return &riotClient{}
 }
